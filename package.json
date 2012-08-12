@@ -4,7 +4,7 @@
   "description": "A jsio flavored CLI for JSHint",
   "homepage": "http://github.com/gameclosure/jsiohint",
   "author": {
-    "name": "Game Closure",
+    "name": "Game Closure"
   },
   "licenses": [{
     "type": "MIT",
