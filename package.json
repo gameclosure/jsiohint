@@ -1,18 +1,16 @@
 {
-  "name": "jshint",
+  "name": "jsiohint",
   "version": "0.7.3",
-  "description": "A CLI for JSHint",
-  "homepage": "http://github.com/jshint/node-jshint",
+  "description": "A jsio flavored CLI for JSHint",
+  "homepage": "http://github.com/gameclosure/jsiohint",
   "author": {
-    "name": "Brent Lintner",
-    "email": "brent.lintner@gmail.com",
-    "url": "http://github.com/brentlintner"
+    "name": "Game Closure",
   },
   "licenses": [{
     "type": "MIT",
     "url": "http://www.opensource.org/licenses/mit-license.php"
   }],
-  "bin": { "jshint": "./bin/hint" },
+  "bin": { "jsiohint": "./bin/hint" },
   "main": "packages/jshint/jshint",
   "files": [
     "packages/jshint/README.markdown",
