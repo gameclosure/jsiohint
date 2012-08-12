@@ -1,6 +1,6 @@
 {
   "name": "jsiohint",
-  "version": "0.7.3",
+  "version": "1.0.0",
   "description": "A jsio flavored CLI for JSHint",
   "homepage": "http://github.com/gameclosure/jsiohint",
   "author": {
