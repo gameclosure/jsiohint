@@ -1,0 +1,22 @@
+{
+  "name": "jsiohint",
+  "version": "2.0.0",
+  "description": "A jsio flavored CLI for JSHint",
+  "homepage": "http://github.com/gameclosure/jsiohint",
+  "author": {
+    "name": "Tom Fairfield"
+  },
+  "licenses": [{
+    "type": "MIT",
+    "url": "http://www.opensource.org/licenses/mit-license.php"
+  }],
+  "bin": { "jsiohint": "./bin/jsiohint" },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "bin/jsiohint"
+  ],
+  "dependencies": {
+  },
+  "preferGlobal" : true
+}
