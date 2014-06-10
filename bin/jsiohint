@@ -16,16 +16,18 @@ var preprocess = function(path, src) {
 	return def.src;
 };
 
-var preprocessed = preprocess('.', fs.readFileSync(process.argv[2], 'utf-8'));
+var filename = process.argv[2];
+if (filename) {
+    var preprocessed = preprocess('.', fs.readFileSync(process.argv[2], 'utf-8'));
+    var jshintProcess = spawn('./node_modules/jshint/bin/jshint', ['-']);
+    jshintProcess.stdout.pipe(process.stdout);
+    jshintProcess.stderr.pipe(process.stderr);
 
-var jshintProcess = spawn('./node_modules/jshint/bin/jshint', ['-']);
-jshintProcess.stdout.pipe(process.stdout);
-jshintProcess.stderr.pipe(process.stderr);
+    jshintProcess.on('exit', function(code) {
+        process.exit(code);
+    });
 
-jshintProcess.on('exit', function(code) {
-    process.exit(code);
-});
-
-jshintProcess.stdin.setEncoding('utf-8');
-jshintProcess.stdin.write(preprocessed + '\n', 'utf-8');
-jshintProcess.stdin.end();
+    jshintProcess.stdin.setEncoding('utf-8');
+    jshintProcess.stdin.write(preprocessed + '\n', 'utf-8');
+    jshintProcess.stdin.end();
+}
