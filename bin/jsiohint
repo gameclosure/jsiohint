@@ -4,6 +4,8 @@ var fs = require('fs');
 var spawn = require('child_process').spawn;
 var jsio = require('jsio');
 var JSHINT = require('jshint').JSHINT;
+var path = require('path');
+
 jsio('import preprocessors.cls as cls');
 jsio('import preprocessors.import as importc');
 
@@ -16,18 +18,20 @@ var preprocess = function(path, src) {
 	return def.src;
 };
 
+var jshint = path.join(__dirname, '../node_modules/jshint/bin/jshint');
+
 var filename = process.argv[2];
 if (filename) {
-    var preprocessed = preprocess('.', fs.readFileSync(process.argv[2], 'utf-8'));
-    var jshintProcess = spawn('./node_modules/jshint/bin/jshint', ['-']);
-    jshintProcess.stdout.pipe(process.stdout);
-    jshintProcess.stderr.pipe(process.stderr);
+  var preprocessed = preprocess('.', fs.readFileSync(process.argv[2], 'utf-8'));
+  var jshintProcess = spawn(jshint, ['-']);
 
-    jshintProcess.on('exit', function(code) {
-        process.exit(code);
-    });
+  jshintProcess.stdout.pipe(process.stdout);
+  jshintProcess.stderr.pipe(process.stderr);
 
-    jshintProcess.stdin.setEncoding('utf-8');
-    jshintProcess.stdin.write(preprocessed + '\n', 'utf-8');
-    jshintProcess.stdin.end();
+  jshintProcess.on('exit', function(code) {
+    process.exit(code);
+  });
+
+  jshintProcess.stdin.write(preprocessed + '\n', 'utf-8');
+  jshintProcess.stdin.end();
 }
