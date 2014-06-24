@@ -5,6 +5,60 @@ var spawn = require('child_process').spawn;
 var jsio = require('jsio');
 var JSHINT = require('jshint').JSHINT;
 var path = require('path');
+var Transform = require('stream').Transform;
+var util = require('util');
+var StringDecoder = require('string_decoder').StringDecoder;
+util.inherits(StringReplaceTransformStream, Transform);
+
+// Gets \n-delimited things and replaces rstring occurrences with replacement
+function StringReplaceTransformStream (rstring, replacement) {
+  Transform.call(this, {encoding: 'utf8'});
+
+  this._rstring = rstring;
+  this._replacement = replacement;
+
+  this._buffer = '';
+  this._decoder = new StringDecoder('utf8');
+}
+
+StringReplaceTransformStream.prototype._transform = function (chunk, enc, cb) {
+  this._buffer += this._decoder.write(chunk);
+  // split on newlines
+  var lines = this._buffer.split(/\r?\n/);
+
+  // keep the last partial line buffered
+  this._buffer = lines.pop();
+
+  for (var l=0; l != lines.length; l++) {
+    var line = lines[l];
+    try {
+      var res = line.replace(this._rstring, this._replacement) + '\n';
+    } catch (err) {
+      this.emit('error', err);
+      return;
+    }
+
+    this.push(res);
+  }
+
+  cb();
+};
+
+StringReplaceTransformStream.prototype._flush = function (cb) {
+  // handle leftovers
+  var rem = this._buffer.trim();
+  if (rem) {
+    try {
+      var res = line.replace(this._rstring, this._replacement) + '\n';
+    } catch (err) {
+      this.emit('error', err);
+      return;
+    }
+    // push the parsed object out to the readable consumer
+    this.push(res);
+  }
+  cb();
+};
 
 jsio('import preprocessors.cls as cls');
 jsio('import preprocessors.import as importc');
@@ -33,8 +87,10 @@ if (filenameIsValid) {
   // Spawn jshint
   var jshintProcess = spawn(jshint, args);
 
-  // pipe to process
-  jshintProcess.stdout.pipe(process.stdout);
+  var transform = new StringReplaceTransformStream(/stdin/, filename);
+
+  jshintProcess.stdout.pipe(transform);
+  transform.pipe(process.stdout);
   jshintProcess.stderr.pipe(process.stderr);
 
   jshintProcess.on('exit', function(code) {
