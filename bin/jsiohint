@@ -20,11 +20,20 @@ var preprocess = function(path, src) {
 
 var jshint = path.join(__dirname, '../node_modules/jshint/bin/jshint');
 
-var filename = process.argv[2];
-if (filename) {
-  var preprocessed = preprocess('.', fs.readFileSync(process.argv[2], 'utf-8'));
-  var jshintProcess = spawn(jshint, ['-']);
+var filename = process.argv[process.argv.length - 1];
+var filenameIsValid = filename[0] !== '-';
 
+if (filenameIsValid) {
+  var preprocessed = preprocess('.', fs.readFileSync(filename, 'utf-8'));
+
+  // Get remaining arguments
+  var args = process.argv.slice(2, -1);
+  args.push('-');
+
+  // Spawn jshint
+  var jshintProcess = spawn(jshint, args);
+
+  // pipe to process
   jshintProcess.stdout.pipe(process.stdout);
   jshintProcess.stderr.pipe(process.stderr);
 
@@ -34,4 +43,15 @@ if (filename) {
 
   jshintProcess.stdin.write(preprocessed + '\n', 'utf-8');
   jshintProcess.stdin.end();
+} else {
+  // Probably just doing a -h or something
+  var p = spawn(jshint, process.argv.slice(2));
+
+  p.on('exit', function(code) {
+    process.exit(code);
+  });
+
+  p.stdout.pipe(process.stdout);
+  p.stderr.pipe(process.stderr);
 }
+
