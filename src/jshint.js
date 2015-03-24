@@ -4281,7 +4281,89 @@ var JSHINT = (function() {
     return this;
   }).exps = true;
 
+
+  function advanceJsioToken() {
+
+    while (state.tokens.next.id == ".") {
+      advance(".");
+    }
+
+    if (state.tokens.next.identifier) {
+
+      // only track the first ident for unused warnings
+      var ident = identifier();
+      var token = state.tokens.curr;
+
+      // consume the remainder of the object definition
+      while (state.tokens.next.id == ".") {
+        advance(".");
+        identifier();
+      }
+
+      return {
+        name: ident,
+        token: token
+      };
+    }
+  }
+
+  stmt("from", function () {
+
+    if (!state.option.jsio) {
+      warning("W117", state.tokens.curr, "from");
+    }
+
+    var importName, as;
+    advanceJsioToken();
+
+    if (state.tokens.next.id == "import") {
+      advance("import");
+    }
+
+    importName = advanceJsioToken();
+
+    if (state.tokens.next.value === "as") {
+      advance("as");
+      as = advanceJsioToken();
+      if (as) {
+        importName = as;
+      }
+    }
+
+    if (importName) {
+      this.name = importName.name;
+      addlabel(this.name, { type: "unused", token: importName.token });
+    } else {
+      warning("W017", state.tokens.curr);
+    }
+
+    return this;
+  });
+
   stmt("import", function() {
+    if (state.option.jsio) {
+      var importName, as;
+
+      importName = advanceJsioToken();
+
+      if (state.tokens.next.value === "as") {
+        advance("as");
+        as = advanceJsioToken();
+        if (as) {
+          importName = as;
+        }
+      }
+
+      if (importName) {
+        this.name = importName.name;
+        addlabel(this.name, { type: "unused", token: importName.token });
+      } else {
+        warning("W017", state.tokens.curr);
+      }
+
+      return this;
+    }
+
     if (!state.inESNext()) {
       warning("W119", state.tokens.curr, "import");
     }
