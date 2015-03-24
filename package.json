@@ -1,25 +1,24 @@
 {
-  "name":     "jshint",
+  "name":     "jsiohint",
   "version":  "2.6.3",
   "homepage": "http://jshint.com/",
   "description": "Static analysis tool for JavaScript",
 
   "author": {
-    "name":  "Anton Kovalyov",
-    "email": "anton@kovalyov.net",
-    "url":   "http://anton.kovalyov.net/"
+    "name":  "Martin Hunt"
   },
 
   "repository": {
     "type": "git",
-    "url": "https://github.com/jshint/jshint.git"
+    "url": "https://github.com/gameclosure/jsiohint.git"
   },
 
   "bugs": {
-    "url": "https://github.com/jshint/jshint/issues"
+    "url": "https://github.com/gameclosure/jsiohint/jsiohint/issues"
   },
 
   "bin": {
+    "jsiohint": "./bin/jshint",
     "jshint": "./bin/jshint"
   },
 
