@@ -541,7 +541,7 @@ Lexer.prototype = {
       "void", "with", "enum", "while", "break",
       "catch", "throw", "const", "yield", "class",
       "super", "return", "typeof", "delete",
-      "switch", "export", "import", "default",
+      "switch", "export", "import", "from", "default",
       "finally", "extends", "function", "continue",
       "debugger", "instanceof"
     ];

@@ -562,6 +562,11 @@ exports.bool = {
      * or empty elements (for example, `[1, , , 4, , , 7]`).
      */
     elision     : true,
+
+    /**
+     * Adds support for jsio imports
+     */
+    jsio        : true,
   },
 
   // Third party globals
