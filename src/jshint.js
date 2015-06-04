@@ -4284,8 +4284,8 @@ var JSHINT = (function() {
 
   function advanceJsioToken() {
 
-    while (state.tokens.next.id == ".") {
-      advance(".");
+    while (/^\.+$/.test(state.tokens.next.id)) {
+      advance(state.tokens.next.id);
     }
 
     if (state.tokens.next.identifier) {
@@ -4307,7 +4307,7 @@ var JSHINT = (function() {
     }
   }
 
-  stmt("from", function () {
+  stmt("from", function() {
 
     if (!state.option.jsio) {
       warning("W117", state.tokens.curr, "from");
