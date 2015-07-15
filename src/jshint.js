@@ -4313,6 +4313,7 @@ var JSHINT = (function() {
       warning("W117", state.tokens.curr, "from");
     }
 
+    state.option.expr = true;
     var importName, as;
     advanceJsioToken();
 
@@ -4332,7 +4333,7 @@ var JSHINT = (function() {
 
     if (importName) {
       this.name = importName.name;
-      addlabel(this.name, { type: "unused", token: importName.token });
+      state.funct["(scope)"].addlabel(this.name, { type: "unused", token: importName.token });
     } else {
       warning("W017", state.tokens.curr);
     }
@@ -4342,6 +4343,7 @@ var JSHINT = (function() {
 
   stmt("import", function() {
     if (state.option.jsio) {
+      state.option.expr = true;
       var importName, as;
 
       importName = advanceJsioToken();
@@ -4356,7 +4358,7 @@ var JSHINT = (function() {
 
       if (importName) {
         this.name = importName.name;
-        addlabel(this.name, { type: "unused", token: importName.token });
+        state.funct["(scope)"].addlabel(this.name, { type: "unused", token: importName.token });
       } else {
         warning("W017", state.tokens.curr);
       }
