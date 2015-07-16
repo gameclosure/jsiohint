@@ -4321,31 +4321,7 @@ var JSHINT = (function() {
       advance("import");
     }
 
-    importName = advanceJsioToken();
-
-    if (state.tokens.next.value === "as") {
-      advance("as");
-      as = advanceJsioToken();
-      if (as) {
-        importName = as;
-      }
-    }
-
-    if (importName) {
-      this.name = importName.name;
-      state.funct["(scope)"].addlabel(this.name, { type: "unused", token: importName.token });
-    } else {
-      warning("W017", state.tokens.curr);
-    }
-
-    return this;
-  });
-
-  stmt("import", function() {
-    if (state.option.jsio) {
-      state.option.expr = true;
-      var importName, as;
-
+    for (;;) {
       importName = advanceJsioToken();
 
       if (state.tokens.next.value === "as") {
@@ -4357,10 +4333,48 @@ var JSHINT = (function() {
       }
 
       if (importName) {
-        this.name = importName.name;
-        state.funct["(scope)"].addlabel(this.name, { type: "unused", token: importName.token });
+        state.funct["(scope)"].addlabel(importName.name, { type: "unused", token: importName.token });
       } else {
         warning("W017", state.tokens.curr);
+      }
+
+      if (state.tokens.next.value !== ",") {
+        break;
+      }
+
+      advance(",");
+    }
+
+    return this;
+  });
+
+  stmt("import", function() {
+    if (state.option.jsio) {
+      state.option.expr = true;
+      var importName, as;
+
+      for (;;) {
+        importName = advanceJsioToken();
+
+        if (state.tokens.next.value === "as") {
+          advance("as");
+          as = advanceJsioToken();
+          if (as) {
+            importName = as;
+          }
+        }
+
+        if (importName) {
+          state.funct["(scope)"].addlabel(importName.name, { type: "unused", token: importName.token });
+        } else {
+          warning("W017", state.tokens.curr);
+        }
+
+        if (state.tokens.next.value !== ",") {
+          break;
+        }
+
+        advance(",");
       }
 
       return this;
