@@ -30,7 +30,6 @@ exports.other = function (test) {
   TestRun(test)
     .addError(1, "Unexpected '\\'.")
     .addError(2, "Unexpected early end of program.")
-    .addError(2, "Expected an identifier and instead saw '(end)'.")
     .addError(2, "Unrecoverable syntax error. (100% scanned).")
     .test(code, {es3: true});
 
@@ -39,6 +38,12 @@ exports.other = function (test) {
     .addError(1, "Expected an identifier and instead saw ')'.")
     .addError(1, "Unrecoverable syntax error. (100% scanned).")
     .test("if (product < ) {}", {es3: true});
+
+  // GH-2506
+  TestRun(test)
+    .addError(1, "Expected an identifier and instead saw ';'.")
+    .addError(1, "Unrecoverable syntax error. (100% scanned).")
+    .test("typeof;");
 
   test.done();
 };
@@ -148,6 +153,7 @@ exports.relations = function (test) {
     "var f = (a === !'hi');",
     "var g = (!2 === 1);",
     "var h = (![1, 2, 3] === []);",
+    "var i = (!([]) instanceof Array);"
   ];
 
   var run = TestRun(test)
@@ -159,7 +165,8 @@ exports.relations = function (test) {
     .addError(6, "Confusing use of '!'.", {character : 10})
     .addError(7, "Confusing use of '!'.", {character : 16})
     .addError(8, "Confusing use of '!'.", {character : 10})
-    .addError(9, "Confusing use of '!'.", {character : 10});
+    .addError(9, "Confusing use of '!'.", {character : 10})
+    .addError(10, "Confusing use of '!'.", {character : 10});
   run.test(code, {es3: true});
   run.test(code, {}); // es5
   run.test(code, {esnext: true});
@@ -208,6 +215,47 @@ exports.options = function (test) {
   run.test(code, {moz: true});
 
   TestRun(test).test(fs.readFileSync(__dirname + "/fixtures/gh988.js", "utf8"));
+
+  test.done();
+};
+
+exports.emptyDirectives = function (test) {
+  TestRun(test)
+    .addError(1, "Bad option value.")
+    .test('/* global */');
+
+  TestRun(test)
+    .addError(1, "Bad option value.")
+    .test('/* global : */');
+
+  TestRun(test)
+    .addError(1, "Bad option value.")
+    .test('/* global -: */');
+
+  TestRun(test)
+    .test('/* global foo, bar, baz, */');
+
+  TestRun(test)
+    .addError(1, "Bad option value.")
+    .test('/* globals */');
+
+  TestRun(test)
+    .addError(1, "Bad option value.")
+    .test('/* globals : */');
+
+  TestRun(test)
+    .addError(1, "Bad option value.")
+    .test('/* globals -: */');
+
+  TestRun(test)
+    .test('/* globals foo, bar, baz, */');
+
+  TestRun(test)
+    .addError(1, "Bad option value.")
+    .test('/* exported */');
+
+  TestRun(test)
+    .test('/* exported foo, bar, baz, */');
 
   test.done();
 };
@@ -337,8 +385,7 @@ exports.numbers = function (test) {
     .addError(16, "Missing semicolon.")
     .addError(17, "Unexpected '1'.")
     .addError(17, "Unexpected early end of program.")
-    .addError(17, "Expected an identifier and instead saw '(end)'.")
-    .addError(17, "Missing semicolon.")
+    .addError(17, "Unrecoverable syntax error. (100% scanned).")
     .test(code, {es3: true});
 
   // Octals are prohibited in strict mode.
@@ -602,7 +649,8 @@ exports.ownProperty = function (test) {
   test.done();
 };
 
-exports.jsonMode = function (test) {
+exports.json = {};
+exports.json.dflt = function (test) {
   var code = [
     '{',
     '  a: 2,',
@@ -634,7 +682,7 @@ exports.jsonMode = function (test) {
   test.done();
 };
 
-exports.deepJSON = function (test) {
+exports.json.deep = function (test) {
   var code = [
     '{',
     '  "key" : {',
@@ -658,7 +706,7 @@ exports.deepJSON = function (test) {
   test.done();
 }
 
-exports.badJSON = function (test) {
+exports.json.errors = function (test) {
   var objTrailingComma = [
     '{ "key" : "value", }',
   ];
@@ -691,7 +739,7 @@ exports.badJSON = function (test) {
 
   var run3 = TestRun(test)
     .addError(1, "Expected '}' and instead saw 'k2'.")
-    .addError(1, "Expected '(end)' and instead saw ':'.");
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
 
   run3.test(objMissingComma, {multistr: true, es3: true});
   run3.test(objMissingComma, {multistr: true}); // es5
@@ -704,7 +752,7 @@ exports.badJSON = function (test) {
 
   var run4 = TestRun(test)
     .addError(1, "Expected ']' and instead saw 'v2'.")
-    .addError(1, "Expected '(end)' and instead saw ']'.");
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
 
   run4.test(arrayMissingComma, {multistr: true, es3: true});
   run4.test(arrayMissingComma, {multistr: true}); // es5
@@ -720,7 +768,7 @@ exports.badJSON = function (test) {
     .addError(1, "Expected ':' and instead saw 'k2'.")
     .addError(1, "Expected a JSON value.")
     .addError(1, "Expected '}' and instead saw ':'.")
-    .addError(1, "Expected '(end)' and instead saw 'v2'.");
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
 
   run5.test(objDoubleComma, {multistr: true, es3: true});
   run5.test(objDoubleComma, {multistr: true}); // es5
@@ -745,7 +793,8 @@ exports.badJSON = function (test) {
   ];
 
   var run7 = TestRun(test)
-    .addError(1, "Expected '}' and instead saw ''.");
+    .addError(1, "Expected '}' and instead saw ''.")
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
 
   run7.test(objUnclosed, {multistr: true, es3: true});
   run7.test(objUnclosed, {multistr: true}); // es5
@@ -757,7 +806,8 @@ exports.badJSON = function (test) {
   ];
 
   var run8 = TestRun(test)
-    .addError(1, "Expected ']' and instead saw ''.");
+    .addError(1, "Expected ']' and instead saw ''.")
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
 
   run8.test(arrayUnclosed, {multistr: true, es3: true});
   run8.test(arrayUnclosed, {multistr: true}); // es5
@@ -770,9 +820,7 @@ exports.badJSON = function (test) {
 
   var run9 = TestRun(test)
     .addError(1, "Missing '}' to match '{' from line 1.")
-    .addError(1, "Expected ':' and instead saw ''.")
-    .addError(1, "Expected a JSON value.")
-    .addError(1, "Expected '}' and instead saw ''.");
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
 
   run9.test(objUnclosed2, {multistr: true, es3: true});
   run9.test(objUnclosed2, {multistr: true}); // es5
@@ -786,7 +834,8 @@ exports.badJSON = function (test) {
   var run10 = TestRun(test)
     .addError(1, "Missing ']' to match '[' from line 1.")
     .addError(1, "Expected a JSON value.")
-    .addError(1, "Expected ']' and instead saw ''.");
+    .addError(1, "Expected ']' and instead saw ''.")
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
 
   run10.test(arrayUnclosed2, {multistr: true, es3: true});
   run10.test(arrayUnclosed2, {multistr: true}); // es5
@@ -824,7 +873,7 @@ exports.badJSON = function (test) {
   var run13 = TestRun(test)
     .addError(1, "Expected a JSON value.")
     .addError(1, "Expected '}' and instead saw '/$^/'.")
-    .addError(1, "Expected '(end)' and instead saw '}'.");
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
 
   run13.test(objBadValue, {multistr: true, es3: true});
   run13.test(objBadValue, {multistr: true}); // es5
@@ -833,6 +882,17 @@ exports.badJSON = function (test) {
 
   test.done();
 }
+
+// Regression test for gh-2488
+exports.json.semicolon = function (test) {
+  TestRun(test)
+    .test("{ \"attr\": \";\" }");
+
+  TestRun(test)
+    .test("[\";\"]");
+
+  test.done();
+};
 
 exports.comma = function (test) {
   var src = fs.readFileSync(__dirname + "/fixtures/comma.js", "utf8");
@@ -890,8 +950,8 @@ exports.blocks = function (test) {
   var src = fs.readFileSync(__dirname + "/fixtures/blocks.js", "utf8");
 
   var run = TestRun(test)
-    .addError(29, "Unmatched \'{\'.")
-    .addError(31, "Unmatched \'{\'.");
+    .addError(31, "Unmatched \'{\'.")
+    .addError(32, "Unrecoverable syntax error. (100% scanned).");
   run.test(src, {es3: true});
   run.test(src, {}); // es5
   run.test(src, {esnext: true});
@@ -1001,7 +1061,7 @@ exports.badIdentifiers = function (test) {
   var run = TestRun(test)
     .addError(1, "Unexpected '\\'.")
     .addError(1, "Expected an identifier and instead saw ''.")
-    .addError(1, "Missing semicolon.");
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
   run.test(badUnicode, {es3: true});
   run.test(badUnicode, {}); // es5
   run.test(badUnicode, {esnext: true});
@@ -1014,7 +1074,7 @@ exports.badIdentifiers = function (test) {
   var run = TestRun(test)
     .addError(1, "Unexpected '\\'.")
     .addError(1, "Expected an identifier and instead saw ''.")
-    .addError(1, "Missing semicolon.");
+    .addError(1, "Unrecoverable syntax error. (100% scanned).");
   run.test(invalidUnicodeIdent, {es3: true});
   run.test(invalidUnicodeIdent, {}); // es5
   run.test(invalidUnicodeIdent, {esnext: true});
@@ -1040,9 +1100,9 @@ exports["regression for GH-910"] = function (test) {
     .addError(1, "Expected an identifier and instead saw ')'.")
     .addError(1, "Expected an operator and instead saw '('.")
     .addError(1, "Unmatched '{'.")
-    .addError(1, "Unmatched '('.")
     .addError(1, "Expected an assignment or function call and instead saw an expression.")
     .addError(1, "Missing semicolon.")
+    .addError(1, "Unrecoverable syntax error. (100% scanned).")
     .test(src, { es3: true, nonew: true });
   test.done();
 };
@@ -1100,7 +1160,6 @@ exports["destructuring var in function scope"] = function (test) {
     .addError(12, "Expected an identifier and instead saw ']'.")
     .addError(12, "Expected an assignment or function call and instead saw an expression.")
     .addError(4,  "'z' is not defined.")
-    .addError(12, "'a' is defined but never used.")
     .addError(12, "'b' is defined but never used.")
     .addError(12, "'c' is defined but never used.")
     .addError(5,  "'h' is defined but never used.")
@@ -1268,7 +1327,6 @@ exports["destructuring var errors"] = function (test) {
     .addError(11, "Expected an identifier and instead saw ']'.")
     .addError(11, "Expected an assignment or function call and instead saw an expression.")
     .addError(3,  "'z' is not defined.")
-    .addError(11, "'a' is defined but never used.")
     .addError(11, "'b' is defined but never used.")
     .addError(11, "'c' is defined but never used.")
     .addError(4,  "'h' is defined but never used.")
@@ -1329,6 +1387,7 @@ exports["destructuring const as esnext"] = function (test) {
     "const [ f, [ [ [ g ], h ], i ] ] = [ 1, [ [ [ 2 ], 3], 4 ] ];",
     "const { foo : bar } = { foo : 1 };",
     "const [ j, { foo : foobar } ] = [ 2, { foo : 1 } ];",
+    "[j] = [1];"
   ];
 
   TestRun(test)
@@ -1345,8 +1404,8 @@ exports["destructuring const as esnext"] = function (test) {
     .addError(6, "'h' is defined but never used.")
     .addError(6, "'i' is defined but never used.")
     .addError(7, "'bar' is defined but never used.")
-    .addError(8, "'j' is defined but never used.")
     .addError(8, "'foobar' is defined but never used.")
+    .addError(9, "Attempting to override 'j' which is a constant.")
     .addError(3, "'z' is not defined.")
     .test(code, {esnext: true, unused: true, undef: true});
 
@@ -1475,9 +1534,9 @@ exports["destructuring const errors"] = function (test) {
     .addError(5, "'n' is defined but never used.")
     .addError(5, "'o' is defined but never used.")
     .addError(5, "'p' is defined but never used.")
-    .addError(2, "const 'a' has already been declared.")
-    .addError(2, "const 'b' has already been declared.")
-    .addError(2, "const 'c' has already been declared.")
+    .addError(2, "'a' has already been declared.")
+    .addError(2, "'b' has already been declared.")
+    .addError(2, "'c' has already been declared.")
     .addError(3, "Expected an identifier and instead saw '1'.")
     .addError(4, "Expected ',' and instead saw ';'.")
     .addError(5, "Expected ']' to match '[' from line 5 and instead saw ';'.")
@@ -1694,6 +1753,60 @@ exports["destructuring assign of empty values as JS legacy"] = function (test) {
     .addError(3, "'f' is defined but never used.")
     .addError(3, "Extra comma. (it breaks older versions of IE)")
     .test(code, {es3: true, unused: true, undef: true});
+
+  test.done();
+};
+
+exports["destructuring assignment default values"] = function (test) {
+  var code = [
+    "var [ a = 3, b ] = [];",
+    "var [ c, d = 3 ] = [];",
+    "var [ [ e ] = [ 3 ] ] = [];",
+    "var [ f = , g ] = [];",
+    "var { g, h = 3 } = {};",
+    "var { i = 3, j } = {};",
+    "var { k, l: m = 3 } = {};",
+    "var { n: o = 3, p } = {};",
+    "var { q: { r } = { r: 3 } } = {};",
+    "var { s = , t } = {};",
+    "var [ u = undefined ] = [];",
+    "var { v = undefined } = {};",
+    "var { w: x = undefined } = {};",
+    "var [ ...y = 3 ] = [];"
+  ];
+
+  TestRun(test)
+    .addError(4, "Expected an identifier and instead saw ','.")
+    .addError(4, "Expected ',' and instead saw 'g'.")
+    .addError(10, "Expected an identifier and instead saw ','.")
+    .addError(10, "Expected ',' and instead saw 't'.")
+    .addError(11, "It's not necessary to initialize 'u' to 'undefined'.")
+    .addError(12, "It's not necessary to initialize 'v' to 'undefined'.")
+    .addError(13, "It's not necessary to initialize 'x' to 'undefined'.")
+    .addError(14, "Expected ']' and instead saw '='.")
+    .test(code, { esnext: true });
+
+  test.done();
+};
+
+exports["non-identifier PropertyNames in object destructuring"] = function (test) {
+  var code = [
+    "var { ['x' + 2]: a = 3, 0: b } = { x2: 1, 0: 2 };",
+    "var { c, '': d, 'x': e } = {};",
+    "function fn({ 0: f, 'x': g, ['y']: h}) {}"
+  ];
+
+  TestRun(test)
+    .addError(1, "'a' is defined but never used.")
+    .addError(1, "'b' is defined but never used.")
+    .addError(2, "'c' is defined but never used.")
+    .addError(2, "'d' is defined but never used.")
+    .addError(2, "'e' is defined but never used.")
+    .addError(3, "'fn' is defined but never used.")
+    .addError(0, "'f' is defined but never used.")
+    .addError(0, "'g' is defined but never used.")
+    .addError(0, "'h' is defined but never used.")
+    .test(code, { esnext: true, unused: true });
 
   test.done();
 };
@@ -2127,7 +2240,7 @@ exports["let statement in for loop as moz"] = function (test) {
     "for (let i = 0; i<15; ++i) {",
     "  print(i);",
     "}",
-    "for (let i=i ; i < 10 ; i++ ) {",
+    "for (let i=0 ; i < 10 ; i++ ) {",
     "print(i);",
     "}"
   ];
@@ -2153,7 +2266,7 @@ exports["let statement in for loop as esnext"] = function (test) {
     "for (let i = 0; i<15; ++i) {",
     "  print(i);",
     "}",
-    "for (let i=i ; i < 10 ; i++ ) {",
+    "for (let i=0 ; i < 10 ; i++ ) {",
     "print(i);",
     "}"
   ];
@@ -2179,7 +2292,7 @@ exports["let statement in for loop as es5"] = function (test) {
     "for (let i = 0; i<15; ++i) {",
     "  print(i);",
     "}",
-    "for (let i=i ; i < 10 ; i++ ) {",
+    "for (let i=0 ; i < 10 ; i++ ) {",
     "print(i);",
     "}"
   ];
@@ -2211,7 +2324,7 @@ exports["let statement in for loop as legacy JS"] = function (test) {
     "for (let i = 0; i<15; ++i) {",
     "  print(i);",
     "}",
-    "for (let i=i ; i < 10 ; i++ ) {",
+    "for (let i=0 ; i < 10 ; i++ ) {",
     "print(i);",
     "}"
   ];
@@ -2599,9 +2712,65 @@ exports["make sure var variables can shadow let variables"] = function (test) {
     .addError(1, "'a' is defined but never used.")
     .addError(2, "'b' is defined but never used.")
     .addError(3, "'c' is defined but never used.")
-    .addError(7, "'d' is defined but never used.")
+    .addError(9, "'d' is defined but never used.")
+    .addError(9, "'d' has already been declared.")
     .test(code, { esnext: true, unused: true, undef: true, funcscope: true });
 
+  test.done();
+};
+
+exports["make sure let variables in the closure of functions shadow predefined globals"] = function (test) {
+  var code = [
+    "function x() {",
+    "  let foo;",
+    "  function y() {",
+    "    foo = {};",
+    "  }",
+    "}"
+  ];
+
+  TestRun(test).test(code, { esnext: true, predef: { foo: false } });
+  test.done();
+};
+
+exports["make sure let variables in the closure of blocks shadow predefined globals"] = function (test) {
+  var code = [
+    "function x() {",
+    "  let foo;",
+    "  {",
+    "    foo = {};",
+    "  }",
+    "}"
+  ];
+
+  TestRun(test).test(code, { esnext: true, predef: { foo: false } });
+  test.done();
+};
+
+exports["make sure variables may shadow globals in functions after they are referenced"] = function (test) {
+  var code = [
+    "var foo;",
+    "function x() {",
+    "  foo();",
+    "  var foo;",
+    "}"
+  ];
+
+  TestRun(test).test(code);
+  test.done();
+};
+
+exports["test block scope redefines globals only outside of blocks"] = function (test) {
+  var code = [
+    "{",
+    "  let Map = true;",
+    "}",
+    "let Map = false;"
+  ];
+
+  TestRun(test)
+    .addError(4, "Redefinition of 'Map'.")
+    .test(code, { esnext: true, browser: true });
   test.done();
 };
 
@@ -2683,6 +2852,22 @@ exports["test destructuring function as legacy JS"] = function (test) {
     .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .test(code, {es3: true, unused: true, undef: true, predef: ["print"]});
+
+  test.done();
+};
+
+exports["destructuring function default values"] = function (test) {
+  var code = [
+    "function a([ b = 2, c = 2 ] = []) {}",
+    "function d([ f = 2 ], g, [ e = 2 ] = []) {}",
+    "function h({ i = 2 }, { j = 2 } = {}) {}",
+    "function k({ l: m = 2, n = 2 }) {}",
+    "let o = (p, [ q = 2, r = 2 ]) => {};",
+    "let s = ({ t = 2 } = {}, [ u = 2 ] = []) => {};",
+    "let v = ({ w: x = 2, y = 2 }) => {};"
+  ];
+
+  TestRun(test).test(code, { esnext: true });
 
   test.done();
 };
@@ -3027,6 +3212,32 @@ exports["array comprehension"] = function (test) {
   test.done();
 };
 
+exports["array comprehension unused and undefined"] = function (test) {
+  var code = [
+    "var range = [1, 2];",
+    "var a = [for (i of range) if (i % 2 === 0) i];",
+    "var b = [for (j of range) doesnotexist];"
+  ];
+  TestRun(test)
+    .addError(2, "'a' is defined but never used.")
+    .addError(3, "'j' is defined but never used.")
+    .addError(3, "'doesnotexist' is not defined.")
+    .addError(3, "'b' is defined but never used.")
+    .test(code, { esnext: true, unused: true, undef: true });
+
+  var unused = JSHINT.data().unused;
+  test.deepEqual([
+    { name: 'a', line: 2, character: 5 },
+    { name: 'b', line: 3, character: 5 }
+    //{ name: 'j', line: 3, character: 15 } // see gh-2440
+  ], unused);
+
+  var implieds = JSHINT.data().implieds;
+  test.deepEqual([{ name: 'doesnotexist', line: [ 3 ] }], implieds);
+
+  test.done();
+};
+
 exports["gh-1856 mistakenly identified as array comprehension"] = function (test) {
   var code = [
     "function main(value) {",
@@ -3042,6 +3253,18 @@ exports["gh-1856 mistakenly identified as array comprehension"] = function (test
 
   TestRun(test)
     .test(code);
+
+  test.done();
+};
+
+exports["gh-1413 wrongly detected as array comprehension"] = function (test) {
+  var code = [
+    "var a = {};",
+    "var b = [ a.for ];"
+  ];
+
+  TestRun(test)
+    .test(code, { unused: false });
 
   test.done();
 };
@@ -3628,9 +3851,39 @@ exports["for of as esnext"] = function (test) {
     "for (let x of [1,2,3,4]) {",
     "    print(x);",
     "}",
-    "for (let x of [1,2,3,4]) print(x);"
+    "for (let x of [1,2,3,4]) print(x);",
+    "for (const x of [1,2,3,4]) print(x);",
+    "var xg, yg;",
+    "for (xg = 1 of [1,2,3,4]) print(xg);",
+    "for (xg, yg of [1,2,3,4]) print(xg + yg);",
+    "for (xg = 1, yg = 2 of [1,2,3,4]) print(xg + yg);",
+    "for (var xv = 1 of [1,2,3,4]) print(xv);",
+    "for (var xv, yv of [1,2,3,4]) print(xv + yv);",
+    "for (var xv = 1, yv = 2 of [1,2,3,4]) print(xv + yv);",
+    "for (let x = 1 of [1,2,3,4]) print(x);",
+    "for (let x, y of [1,2,3,4]) print(x + y);",
+    "for (let x = 1, y = 2 of [1,2,3,4]) print(x + y);",
+    "for (const x = 1 of [1,2,3,4]) print(x);",
+    "for (const x, y of [1,2,3,4]) print(x + y);",
+    "for (const x = 1, y = 2 of [1,2,3,4]) print(x + y);"
   ];
   TestRun(test)
+    .addError(7, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(9, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(10, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(11, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(12, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(12, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(13, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(14, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(15, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(15, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(16, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(17, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(18, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(18, "Invalid for-of loop left-hand-side: more than one ForBinding.")
     .test(code, {esnext: true, undef: true, predef: ["print"]});
 
   test.done();
@@ -3641,13 +3894,62 @@ exports["for of as es5"] = function (test) {
     "for (let x of [1,2,3,4]) {",
     "    print(x);",
     "}",
-    "for (let x of [1,2,3,4]) print(x);"
+    "for (let x of [1,2,3,4]) print(x);",
+    "for (const x of [1,2,3,4]) print(x);",
+    "for (x = 1 of [1,2,3,4]) print(x);",
+    "for (x, y of [1,2,3,4]) print(x + y);",
+    "for (x = 1, y = 2 of [1,2,3,4]) print(x + y);",
+    "for (var x = 1 of [1,2,3,4]) print(x);",
+    "for (var x, y of [1,2,3,4]) print(x + y);",
+    "for (var x = 1, y = 2 of [1,2,3,4]) print(x + y);",
+    "for (let x = 1 of [1,2,3,4]) print(x);",
+    "for (let x, y of [1,2,3,4]) print(x + y);",
+    "for (let x = 1, y = 2 of [1,2,3,4]) print(x + y);",
+    "for (const x = 1 of [1,2,3,4]) print(x);",
+    "for (const x, y of [1,2,3,4]) print(x + y);",
+    "for (const x = 1, y = 2 of [1,2,3,4]) print(x + y);"
   ];
   TestRun(test)
     .addError(1, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .addError(1, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .addError(4, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(7, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(8, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(10, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(10, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(11, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(11, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(11, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(12, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(12, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(12, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(13, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(13, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(13, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(14, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(14, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(14, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(14, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(15, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(15, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(15, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(16, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(16, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(16, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(17, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(17, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(17, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(17, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .test(code, {undef: true, predef: ["print"]}); // es5
 
   test.done();
@@ -3658,14 +3960,647 @@ exports["for of as legacy JS"] = function (test) {
     "for (let x of [1,2,3,4]) {",
     "    print(x);",
     "}",
-    "for (let x of [1,2,3,4]) print(x);"
+    "for (let x of [1,2,3,4]) print(x);",
+    "for (const x of [1,2,3,4]) print(x);",
+    "for (x = 1 of [1,2,3,4]) print(x);",
+    "for (x, y of [1,2,3,4]) print(x + y);",
+    "for (x = 1, y = 2 of [1,2,3,4]) print(x + y);",
+    "for (var x = 1 of [1,2,3,4]) print(x);",
+    "for (var x, y of [1,2,3,4]) print(x + y);",
+    "for (var x = 1, y = 2 of [1,2,3,4]) print(x + y);",
+    "for (let x = 1 of [1,2,3,4]) print(x);",
+    "for (let x, y of [1,2,3,4]) print(x + y);",
+    "for (let x = 1, y = 2 of [1,2,3,4]) print(x + y);",
+    "for (const x = 1 of [1,2,3,4]) print(x);",
+    "for (const x, y of [1,2,3,4]) print(x + y);",
+    "for (const x = 1, y = 2 of [1,2,3,4]) print(x + y);"
   ];
   TestRun(test)
     .addError(1, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .addError(1, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .addError(4, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(7, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(8, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(10, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(10, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(11, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(11, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(11, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(12, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(12, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(12, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(13, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(13, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(13, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(14, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(14, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(14, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(14, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(15, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(15, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(15, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(16, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(16, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(16, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(17, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(17, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(17, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(17, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
     .test(code, {undef: true, predef: ["print"]}); // es5
+
+  test.done();
+};
+
+exports["array destructuring for of as esnext"] = function (test) {
+  var basic = [
+    "for ([i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);"
+  ];
+
+  TestRun(test, "basic")
+    .addError(1, "Creating global 'for' variable. Should be 'for (var i ...'.")
+    .addError(1, "Creating global 'for' variable. Should be 'for (var v ...'.")
+    .test(basic, {esnext: true, undef: true, predef: ["print"]});
+
+  var bad = [
+    "for ([i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for ([i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for ([i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+  ];
+
+  TestRun(test, "errors #1")
+    .addError(1, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(2, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(3, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(3, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .test(bad, {esnext: true, undef: true, predef: ["print"]});
+
+  var bad2 = [
+    "for (let [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+  ];
+  TestRun(test, "errors #2")
+    .addError(1, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(2, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(3, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(3, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .test(bad2, {esnext: true, undef: true, predef: ["print"]});
+
+  test.done();
+};
+
+exports["array destructuring for of as es5"] = function (test) {
+  var basic = [
+    "for ([i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);"
+  ];
+
+  TestRun(test, "basic")
+    .addError(1, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "Creating global 'for' variable. Should be 'for (var i ...'.")
+    .addError(1, "Creating global 'for' variable. Should be 'for (var v ...'.")
+    .addError(2, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(basic, {undef: true, predef: ["print"]}); // es5
+
+  var bad = [
+    "for ([i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for ([i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for ([i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+  ];
+
+  TestRun(test, "errors #1")
+    .addError(1, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(1, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(3, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(bad, {undef: true, predef: ["print"]}); // es5
+
+  var bad2 = [
+    "for (let [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+  ];
+  TestRun(test, "errors #2")
+    .addError(1, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(1, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(2, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(3, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(3, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(4, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(5, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(bad2, {undef: true, predef: ["print"]}); // es5
+
+  test.done();
+};
+
+exports["array destructuring for of as legacy JS"] = function (test) {
+  var basic = [
+    "for ([i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);"
+  ];
+
+  TestRun(test, "basic")
+    .addError(1, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "Creating global 'for' variable. Should be 'for (var i ...'.")
+    .addError(1, "Creating global 'for' variable. Should be 'for (var v ...'.")
+    .addError(2, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(basic, {es3: true, undef: true, predef: ["print"]}); // es3
+
+  var bad = [
+    "for ([i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for ([i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for ([i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (var [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+  ];
+
+  TestRun(test, "errors #1")
+    .addError(1, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(1, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(3, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(bad, {es3: true, undef: true, predef: ["print"]}); // es3
+
+  var bad2 = [
+    "for (let [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (let [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v], [a, b] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+    "for (const [i, v], [a, b] = [1, 2] of [[0, 1],[1, 2],[2, 3],[3, 4]]) print(i + '=' + v);",
+  ];
+  TestRun(test, "errors #2")
+    .addError(1, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(1, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(1, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(2, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(2, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(3, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(3, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(3, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(4, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(5, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(bad2, {es3: true, undef: true, predef: ["print"]}); // es3
+
+  test.done();
+};
+
+exports["object destructuring for of as esnext"] = function (test) {
+  var basic = [
+    "var obj1 = { key: 'a', data: { value: 1 } };",
+    "var obj2 = { key: 'b', data: { value: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for ({key, data: { value } } of arr) print(key + '=' + value);",
+    "for (var {key, data: { value } } of arr) print(key + '=' + value);",
+    "for (let {key, data: { value } } of arr) print(key + '=' + value);",
+    "for (const {key, data: { value } } of arr) print(key + '=' + value);"
+  ];
+
+  TestRun(test, "basic")
+    .addError(4, "Creating global 'for' variable. Should be 'for (var key ...'.")
+    .addError(4, "Creating global 'for' variable. Should be 'for (var value ...'.")
+    .test(basic, {esnext: true, undef: true, predef: ["print"]});
+
+  var bad = [
+    "var obj1 = { key: 'a', data: { val: 1 } };",
+    "var obj2 = { key: 'b', data: { val: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for ({key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for ({key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for ({key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);"
+  ];
+
+  TestRun(test, "errors #1")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(7, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(9, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .test(bad, {esnext: true, undef: true, predef: ["print"]});
+
+  var bad2 = [
+    "var obj1 = { key: 'a', data: { val: 1 } };",
+    "var obj2 = { key: 'b', data: { val: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for (let {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (let {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (let {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);"
+  ];
+
+  TestRun(test, "errors #2")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(7, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(9, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .test(bad2, {esnext: true, undef: true, predef: ["print"]});
+
+  test.done();
+};
+
+exports["object destructuring for of as es5"] = function (test) {
+  var basic = [
+    "var obj1 = { key: 'a', data: { value: 1 } };",
+    "var obj2 = { key: 'b', data: { value: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for ({key, data: { value } } of arr) print(key + '=' + value);",
+    "for (var {key, data: { value } } of arr) print(key + '=' + value);",
+    "for (let {key, data: { value } } of arr) print(key + '=' + value);",
+    "for (const {key, data: { value } } of arr) print(key + '=' + value);"
+  ];
+
+  TestRun(test, "basic")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Creating global 'for' variable. Should be 'for (var key ...'.")
+    .addError(4, "Creating global 'for' variable. Should be 'for (var value ...'.")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(basic, {undef: true, predef: ["print"]}); // es5
+
+  var bad = [
+    "var obj1 = { key: 'a', data: { val: 1 } };",
+    "var obj2 = { key: 'b', data: { val: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for ({key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for ({key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for ({key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);"
+  ];
+
+  TestRun(test, "errors #1")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(9, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(bad, {undef: true, predef: ["print"]}); // es5
+
+  var bad2 = [
+    "var obj1 = { key: 'a', data: { val: 1 } };",
+    "var obj2 = { key: 'b', data: { val: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for (let {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (let {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (let {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);"
+  ];
+
+  TestRun(test, "errors #2")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(4, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(5, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(7, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(8, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(9, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(bad2, {undef: true, predef: ["print"]}); // es5
+
+  test.done();
+};
+
+exports["object destructuring for of as legacy JS"] = function (test) {
+  var basic = [
+    "var obj1 = { key: 'a', data: { value: 1 } };",
+    "var obj2 = { key: 'b', data: { value: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for ({key, data: { value } } of arr) print(key + '=' + value);",
+    "for (var {key, data: { value } } of arr) print(key + '=' + value);",
+    "for (let {key, data: { value } } of arr) print(key + '=' + value);",
+    "for (const {key, data: { value } } of arr) print(key + '=' + value);"
+  ];
+
+  TestRun(test, "basic")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Creating global 'for' variable. Should be 'for (var key ...'.")
+    .addError(4, "Creating global 'for' variable. Should be 'for (var value ...'.")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(basic, {es3: true, undef: true, predef: ["print"]}); // es3
+
+  var bad = [
+    "var obj1 = { key: 'a', data: { val: 1 } };",
+    "var obj2 = { key: 'b', data: { val: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for ({key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for ({key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for ({key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (var {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);"
+  ];
+
+  TestRun(test, "errors #1")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(9, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(bad, {es3: true, undef: true, predef: ["print"]}); // es3
+
+  var bad2 = [
+    "var obj1 = { key: 'a', data: { val: 1 } };",
+    "var obj2 = { key: 'b', data: { val: 2 } };",
+    "var arr = [obj1, obj2];",
+    "for (let {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (let {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (let {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}} = obj1 of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}}, {a, b} of arr) print(key + '=' + val);",
+    "for (const {key, data: {val}}, {a, b} = obj1 of arr) print(key + '=' + val);"
+  ];
+
+  TestRun(test, "errors #2")
+    .addError(4, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(4, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(4, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(5, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(5, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(6, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(6, "'let' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(6, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(7, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(7, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(8, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(8, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'for of' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "Invalid for-of loop left-hand-side: initializer is forbidden.")
+    .addError(9, "Invalid for-of loop left-hand-side: more than one ForBinding.")
+    .addError(9, "'const' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .addError(9, "'destructuring expression' is available in ES6 (use esnext option) or Mozilla JS extensions (use moz).")
+    .test(bad2, {es3: true, undef: true, predef: ["print"]}); // es3
 
   test.done();
 };
@@ -3775,6 +4710,86 @@ exports["no let not directly within a block"] = function (test) {
     .addError(11, "Let declaration not directly within block.")
     .addError(11, "Let declaration not directly within block.")
     .test(code, {moz: true, predef: ["print"]});
+
+  test.done();
+};
+
+exports["no const not directly within a block"] = function (test) {
+  var code = [
+    "if (true) const x = 1;",
+    "function foo() {",
+    "   if (true)",
+    "       const x = 1;",
+    "}",
+    "for (let x = 0; x < 42; ++x) const a = 1;",
+    "while (true) const a = 1;",
+    "if (false) const a = 1; else if (true) const a = 1; else const a = 2;"
+  ];
+
+  TestRun(test)
+    .addError(1, "Const declaration not directly within block.")
+    .addError(4, "Const declaration not directly within block.")
+    .addError(6, "Const declaration not directly within block.")
+    .addError(7, "Const declaration not directly within block.")
+    .addError(8, "Const declaration not directly within block.")
+    .addError(8, "Const declaration not directly within block.")
+    .addError(8, "Const declaration not directly within block.")
+    .test(code, {predef: ["print"], esnext: true});
+
+  test.done();
+};
+
+exports["test: let declared directly within block"] = function (test) {
+  var code = [
+    "for (let i;;){",
+    "  console.log(i);",
+    "}"
+  ];
+
+  TestRun(test)
+    .test(code, {esnext: true});
+
+  code = [
+    "for (let i;;)",
+    "  console.log(i);"
+  ];
+
+  TestRun(test)
+    .test(code, {esnext: true});
+
+  test.done();
+};
+
+exports["test: let is directly within nested block"] = function (test) {
+  var code   = [
+    "if(true) {",
+    "  for (let i;;)",
+    "    console.log(i);",
+    "}"
+  ];
+
+  TestRun(test)
+    .test(code, {esnext: true});
+
+  code   = [
+    "if(true)",
+    "  for (let i;;)",
+    "    console.log(i);"
+  ];
+
+  TestRun(test)
+    .test(code, {esnext: true});
+
+  code   = [
+    "if(true) {",
+    "  for (let i;;){",
+    "    console.log(i);",
+    "  }",
+    "}"
+  ];
+
+  TestRun(test)
+    .test(code, {esnext: true});
 
   test.done();
 };
@@ -4577,6 +5592,28 @@ exports["class and method naming"] = function (test) {
   test.done();
 };
 
+exports["computed class methods aren't duplicate"] = function (test) {
+  var code = [
+    "const obj = {};",
+    "class A {",
+    "  [Symbol()]() {}",
+    "  [Symbol()]() {}",
+    "  [obj.property]() {}",
+    "  [obj.property]() {}",
+    "  [obj[0]]() {}",
+    "  [obj[0]]() {}",
+    "  [`template`]() {}",
+    "  [`template2`]() {}",
+    "}"
+  ];
+
+  // JSHint shouldn't throw a "Duplicate class method" warning with computed method names
+  // GH-2350
+  TestRun(test).test(code, { esnext: true });
+
+  test.done();
+};
+
 exports["class method this"] = function (test) {
   var code = [
   "class C {",
@@ -4623,6 +5660,20 @@ exports.classExpression = function (test) {
   test.done();
 };
 
+exports.functionNotOverwritten = function (test) {
+  var code = [
+    "function x() {",
+    "  x = 1;",
+    "  var x;",
+    "}"
+  ];
+
+  TestRun(test)
+    .test(code, { shadow: true });
+
+  test.done();
+};
+
 exports.classExpressionThis = function (test) {
   var code = [
     "void class MyClass {",
@@ -4636,6 +5687,53 @@ exports.classExpressionThis = function (test) {
 
   TestRun(test)
     .test(code, { esnext: true });
+
+  test.done();
+};
+
+exports.classElementEmpty = function (test) {
+  var code = [
+    "class A {",
+    "  ;",
+    "  method() {}",
+    "  ;",
+    "  *methodB() { yield; }",
+    "  ;;",
+    "  methodC() {}",
+    "  ;",
+    "}",
+  ];
+
+  TestRun(test)
+    .addError(2, "Unnecessary semicolon.")
+    .addError(4, "Unnecessary semicolon.")
+    .addError(6, "Unnecessary semicolon.")
+    .addError(6, "Unnecessary semicolon.")
+    .addError(8, "Unnecessary semicolon.")
+    .test(code, { esnext: true });
+
+  test.done();
+};
+
+exports.invalidClasses = function (test) {
+  // Regression test for GH-2324
+  TestRun(test)
+    .addError(1, "Class properties must be methods. Expected '(' but instead saw ''.")
+    .addError(1, "Unrecoverable syntax error. (100% scanned).")
+    .test("class a { b", { esnext: true });
+
+  // Regression test for GH-2339
+  TestRun(test)
+    .addError(2, "Class properties must be methods. Expected '(' but instead saw ':'.")
+    .addError(3, "Expected '(' and instead saw '}'.")
+    .addError(4, "Expected an identifier and instead saw '}'.")
+    .addError(4, "Unrecoverable syntax error. (100% scanned).")
+    .test([
+        "class Test {",
+        "  constructor: {",
+        "  }",
+        "}"
+      ], { esnext: true });
 
   test.done();
 };
@@ -5069,7 +6167,9 @@ exports["allow expression with a comma in switch case condition"] = function (te
   test.done();
 };
 
-exports["/*jshint ignore */ should be a good option and only accept start, end or line as values"] = function (test) {
+exports.ignoreDirective = {};
+
+exports.ignoreDirective["should be a good option and only accept start, end or line as values"] = function (test) {
   var code = [
     "/*jshint ignore:start*/",
     "/*jshint ignore:end*/",
@@ -5084,7 +6184,7 @@ exports["/*jshint ignore */ should be a good option and only accept start, end o
   test.done();
 };
 
-exports["/*jshint ignore */ should allow the linter to skip blocked-out lines to continue finding errors in the rest of the code"] = function (test) {
+exports.ignoreDirective["should allow the linter to skip blocked-out lines to continue finding errors in the rest of the code"] = function (test) {
   var code = fs.readFileSync(__dirname + "/fixtures/gh826.js", "utf8");
 
   TestRun(test)
@@ -5094,7 +6194,7 @@ exports["/*jshint ignore */ should allow the linter to skip blocked-out lines to
   test.done();
 };
 
-exports["/*jshint ignore */ should ignore lines that appear to end with multiline comment endings (GH-1691)"] = function(test) {
+exports.ignoreDirective["should ignore lines that appear to end with multiline comment endings (GH-1691)"] = function(test) {
   var code = [
     "/*jshint ignore: start*/",
     "var a = {",
@@ -5111,7 +6211,7 @@ exports["/*jshint ignore */ should ignore lines that appear to end with multilin
   test.done();
 };
 
-exports["/*jshint ignore */ should ignore lines that end with a multi-line comment (GH-1396)"] = function(test) {
+exports.ignoreDirective["should ignore lines that end with a multi-line comment (GH-1396)"] = function(test) {
   var code = [
     "/*jshint ignore:start */",
     "var a; /* following comment */",
@@ -5124,7 +6224,7 @@ exports["/*jshint ignore */ should ignore lines that end with a multi-line comme
   test.done();
 };
 
-exports["/*jshint ignore */ should ignore multi-line comments"] = function(test) {
+exports.ignoreDirective["should ignore multi-line comments"] = function(test) {
   var code = [
     "/*jshint ignore:start */",
     "/*",
@@ -5140,7 +6240,7 @@ exports["/*jshint ignore */ should ignore multi-line comments"] = function(test)
   test.done();
 };
 
-exports["/*jshint ignore */ should be detected even with leading and/or trailing whitespace"] = function (test) {
+exports.ignoreDirective["should be detected even with leading and/or trailing whitespace"] = function (test) {
   var code = [
     "  /*jshint ignore:start */",     // leading whitespace
     "   if (true) { alert('sup') }", // should be ignored
@@ -5153,6 +6253,33 @@ exports["/*jshint ignore */ should be detected even with leading and/or trailing
 
   TestRun(test)
     .addError(4, "Missing semicolon.")
+    .test(code);
+
+  test.done();
+};
+
+// gh-2411 /* jshint ignore:start */ stopped working.
+exports.ignoreDirective["should apply to lines lexed during lookahead operations"] = function (test) {
+  var code = [
+    "void [function () {",
+    "  /* jshint ignore:start */",
+    "  ?",
+    "  /* jshint ignore:end */",
+    "}];"
+  ];
+
+  TestRun(test)
+    .test(code);
+
+  code = [
+    "(function () {",
+    "  /* jshint ignore:start */",
+    "  ?",
+    "  /* jshint ignore:end */",
+    "}());"
+  ];
+
+  TestRun(test)
     .test(code);
 
   test.done();
@@ -5417,6 +6544,8 @@ exports.testES6UnusedExports = function (test) {
   ];
 
   TestRun(test)
+    .addError(24, "'letDefinedLater' was used before it was declared, which is illegal for 'let' variables.")
+    .addError(25, "'constDefinedLater' was used before it was declared, which is illegal for 'const' variables.")
     .test(code, { esnext: true, unused: true });
 
   test.done();
@@ -5567,6 +6696,21 @@ exports.trailingCommaInArrayBindingPatternParameters = function (test) {
   test.done();
 };
 
+exports.testGH1879 = function (test) {
+  var code = [
+    "function Foo() {",
+    "  return;",
+    "  // jshint ignore:start",
+    "  return [];",
+    "  // jshint ignore:end",
+    "}"
+  ];
+
+  TestRun(test)
+    .test(code);
+
+  test.done();
+};
 
 exports.commaAfterRestElementInArrayBindingPattern = function (test) {
   var code = [
@@ -5693,6 +6837,80 @@ exports.restOperatorWithoutIdentifier = function (test) {
     .addError(9, "Unexpected '...'.")
     .addError(10, "Unexpected '...'.")
     .test(code, { esnext: true });
+
+  test.done();
+};
+
+exports.getAsIdentifierProp = function (test) {
+  TestRun(test)
+    .test('var get; var obj = { get };', { esnext: true });
+
+  TestRun(test)
+    .test('var set; var obj = { set };', { esnext: true });
+
+  TestRun(test)
+    .test('var get, set; var obj = { get, set };', { esnext: true });
+
+  TestRun(test)
+    .test('var get, set; var obj = { set, get };', { esnext: true });
+
+  TestRun(test)
+    .test('var get; var obj = { a: null, get };', { esnext: true });
+
+  TestRun(test)
+    .test('var get; var obj = { a: null, get, b: null };', { esnext: true });
+
+  TestRun(test)
+    .test('var get; var obj = { get, b: null };', { esnext: true });
+
+  TestRun(test)
+    .test('var get; var obj = { get, get a() {} };', { esnext: true });
+
+  TestRun(test)
+    .test([
+      'var set;',
+      'var obj = { set, get a() {}, set a(_) {} };'
+    ], { esnext: true });
+
+  test.done();
+};
+
+exports.invalidParams = function (test) {
+  TestRun(test)
+    .addError(1, "Expected an identifier and instead saw '!'.")
+    .addError(1, "Unrecoverable syntax error. (100% scanned).")
+    .test("(function(!", { esnext: true });
+
+  test.done();
+};
+
+// Regression test for gh-2362
+exports.functionKeyword = function (test) {
+  TestRun(test)
+    .addError(1, "Missing name in function declaration.")
+    .addError(1, "Expected '(' and instead saw ''.")
+    .addError(1, "Unrecoverable syntax error. (100% scanned).")
+    .test("function");
+
+  test.done();
+};
+
+exports.nonGeneratorAfterGenerator = function (test) {
+  var run;
+  var code = [
+    'var obj = {',
+    '  *gen() {',
+    '    yield 1;',
+    '  },',
+    // non_gen shouldn't be parsed as a generator method here, and parser
+    // shouldn't report an error about a generator without a yield expression.
+    '  non_gen() {',
+    '  }',
+    '};'
+  ];
+
+  run = TestRun(test);
+  run.test(code, { esnext: true });
 
   test.done();
 };

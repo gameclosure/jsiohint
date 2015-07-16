@@ -143,15 +143,6 @@ exports.bool = {
     funcscope   : true,
 
     /**
-     * This option suppresses warnings about the use of global strict mode.
-     * Global strict mode can break third-party widgets so it is not
-     * recommended.
-     *
-     * For more info about strict mode see the `strict` option.
-     */
-    globalstrict: true,
-
-    /**
      * This option prohibits the use of immediate function invocations without
      * wrapping them in parentheses. Wrapping parentheses assists readers of
      * your code in understanding that the expression is the result of a
@@ -268,12 +259,24 @@ exports.bool = {
     singleGroups: false,
 
     /**
-     * This option is a short hand for the most strict JSHint configuration. It
-     * enables all enforcing options and disables all relaxing options.
+     * When set to true, the use of VariableStatements are forbidden.
+     * For example:
      *
-     * @deprecated The option automatically opts users in to new features which
-     *             can lead to unexpected warnings/errors in when upgrading
-     *             between minor versions of JSHint.
+     *     // jshint varstmt: true
+     *
+     *     var a; // Warning: `var` declarations are forbidden. Use `let` or `const` instead.
+     */
+    varstmt: false,
+
+    /**
+     * This option is a short hand for the most strict JSHint configuration as
+     * available in JSHint version 2.6.3. It enables all enforcing options and
+     * disables all relaxing options that were defined in that release.
+     *
+     * @deprecated The option cannot be maintained without automatically opting
+     *             users in to new features. This can lead to unexpected
+     *             warnings/errors in when upgrading between minor versions of
+     *             JSHint.
      */
     enforceall : false
   },
@@ -344,21 +347,23 @@ exports.bool = {
     boss        : true,
 
     /**
-     * This option defines globals available when your core is running inside
-     * of the PhantomJS runtime environment. [PhantomJS](http://phantomjs.org/)
-     * is a headless WebKit scriptable with a JavaScript API. It has fast and
-     * native support for various web standards: DOM handling, CSS selector,
-     * JSON, Canvas, and SVG.
-     */
-    phantom     : true,
-
-    /**
      * This option suppresses warnings about the use of `eval`. The use of
      * `eval` is discouraged because it can make your code vulnerable to
      * various injection attacks and it makes it hard for JavaScript
      * interpreter to do certain optimizations.
     */
     evil        : true,
+
+    /**
+     * This option suppresses warnings about the use of global strict mode.
+     * Global strict mode can break third-party widgets so it is not
+     * recommended.
+     *
+     * For more info about strict mode see the `strict` option.
+     *
+     * @deprecated Use `strict: "global"`.
+     */
+    globalstrict: true,
 
     /**
      * This option prohibits the use of unary increment and decrement
@@ -378,21 +383,6 @@ exports.bool = {
      * URLs—such as `javascript:...`.
      */
     scripturl   : true,
-
-    /**
-     * This option requires all functions to run in ECMAScript 5's strict mode.
-     * [Strict mode](https://developer.mozilla.org/en/JavaScript/Strict_mode)
-     * is a way to opt in to a restricted variant of JavaScript. Strict mode
-     * eliminates some JavaScript pitfalls that didn't cause errors by changing
-     * them to produce errors.  It also fixes mistakes that made it difficult
-     * for the JavaScript engines to perform certain optimizations.
-     *
-     * *Note:* This option enables strict mode for function scope only. It
-     * *prohibits* the global scoped strict mode because it might break
-     * third-party widgets on your page. If you really want to use global
-     * strict mode, see the *globalstrict* option.
-     */
-    strict      : true,
 
     /**
      * This option suppresses warnings about using `[]` notation when it can be
@@ -646,6 +636,12 @@ exports.bool = {
     mocha       : true,
 
     /**
+     * This option informs JSHint that the input code describes an ECMAScript 6
+     * module. All module code is interpreted as strict mode code.
+     */
+    module      : true,
+
+    /**
      * This option defines globals available when your code is running as a
      * script for the [Windows Script
      * Host](http://en.wikipedia.org/wiki/Windows_Script_Host).
@@ -704,7 +700,16 @@ exports.bool = {
      * * [JavaScript typed
      *   arrays](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Typed_arrays)
      */
-    typed       : true
+    typed       : true,
+
+    /**
+     * This option defines globals available when your core is running inside
+     * of the PhantomJS runtime environment. [PhantomJS](http://phantomjs.org/)
+     * is a headless WebKit scriptable with a JavaScript API. It has fast and
+     * native support for various web standards: DOM handling, CSS selector,
+     * JSON, Canvas, and SVG.
+     */
+    phantom     : true
   },
 
   // Obsolete options
@@ -744,7 +749,18 @@ exports.val = {
    */
   maxerr       : false,
 
-  predef       : false, // predef is deprecated and being replaced by globals
+  /**
+   * This option allows you to control which variables JSHint considers to be
+   * implicitly defined in the environment. Configure it with an array of
+   * string values. Prefixing a variable name with a hyphen (-) character will
+   * remove that name from the collection of predefined variables.
+   *
+   * JSHint will consider variables declared in this way to be read-only.
+   *
+   * This option cannot be specified in-line; it may only be used via the
+   * JavaScript API or from an external configuration file.
+   */
+  predef       : false,
 
   /**
    * This option can be used to specify a white list of global variables that
@@ -859,6 +875,22 @@ exports.val = {
   shadow       : false,
 
   /**
+   * This option requires the code to run in ECMAScript 5's strict mode.
+   * [Strict mode](https://developer.mozilla.org/en/JavaScript/Strict_mode)
+   * is a way to opt in to a restricted variant of JavaScript. Strict mode
+   * eliminates some JavaScript pitfalls that didn't cause errors by changing
+   * them to produce errors.  It also fixes mistakes that made it difficult
+   * for the JavaScript engines to perform certain optimizations.
+   *
+   * - "func"    - there must be a `"use strict";` directive at function level
+   * - "global"  - there must be a `"use strict";` directive at global level
+   * - "implied" - lint the code as if there is the `"use strict";` directive
+   * - false     - disable warnings about strict mode
+   * - true      - same as `"func"`
+   */
+  strict      : true,
+
+  /**
    * This option warns when you define and never use your variables. It is very
    * useful for general code cleanup, especially when used in addition to
    * `undef`.
@@ -949,4 +981,11 @@ exports.removed = {
   gcl: true,
   smarttabs: true,
   trailing: true
+};
+
+// Add options here which should not be automatically enforced by
+// `enforceall`.
+exports.noenforceall = {
+  varstmt: true,
+  strict: true
 };

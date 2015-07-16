@@ -83,6 +83,7 @@ exports.browser = {
   ElementTimeControl   : false,
   Event                : false,
   event                : false,
+  fetch                : false,
   FileReader           : false,
   FormData             : false,
   focus                : false,
@@ -96,6 +97,7 @@ exports.browser = {
   HTMLBRElement        : false,
   HTMLButtonElement    : false,
   HTMLCanvasElement    : false,
+  HTMLCollection       : false,
   HTMLDirectoryElement : false,
   HTMLDivElement       : false,
   HTMLDListElement     : false,
@@ -175,6 +177,7 @@ exports.browser = {
   opener               : false,
   Option               : false,
   parent               : false,
+  performance          : false,
   print                : false,
   Range                : false,
   requestAnimationFrame : false,
@@ -669,6 +672,8 @@ exports.yui = {
 };
 
 exports.mocha = {
+  // Global (for config etc.)
+  mocha       : false,
   // BDD
   describe    : false,
   xdescribe   : false,
@@ -692,6 +697,7 @@ exports.mocha = {
 exports.jasmine = {
   jasmine     : false,
   describe    : false,
+  xdescribe   : false,
   it          : false,
   xit         : false,
   beforeEach  : false,

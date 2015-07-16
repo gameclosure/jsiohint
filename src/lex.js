@@ -4,7 +4,7 @@
 
 "use strict";
 
-var _      = require("underscore");
+var _      = require("lodash");
 var events = require("events");
 var reg    = require("./reg.js");
 var state  = require("./state.js").state;
@@ -123,6 +123,9 @@ function Lexer(source) {
   for (var i = 0; i < state.option.indent; i += 1) {
     state.tab += " ";
   }
+
+  // Blank out non-multi-line-commented lines when ignoring linter errors
+  this.ignoreLinterErrors = false;
 }
 
 Lexer.prototype = {
@@ -399,6 +402,7 @@ Lexer.prototype = {
     var rest = this.input.substr(2);
     var startLine = this.line;
     var startChar = this.char;
+    var self = this;
 
     // Create a comment token object and make sure it
     // has all the data JSHint needs to work with special
@@ -453,6 +457,26 @@ Lexer.prototype = {
           commentType = "globals";
           break;
         default:
+          var options = body.split(":").map(function(v) {
+            return v.replace(/^\s+/, "").replace(/\s+$/, "");
+          });
+
+          if (options.length === 2) {
+            switch (options[0]) {
+            case "ignore":
+              switch (options[1]) {
+              case "start":
+                self.ignoringLinterErrors = true;
+                isSpecial = false;
+                break;
+              case "end":
+                self.ignoringLinterErrors = false;
+                isSpecial = false;
+                break;
+              }
+            }
+          }
+
           commentType = str;
         }
       });
@@ -962,7 +986,7 @@ Lexer.prototype = {
         line: this.line,
         character: this.char
       }, checks,
-      function() { return n >= 0 && n <= 7 && state.directive["use strict"]; });
+      function() { return n >= 0 && n <= 7 && state.isStrict(); });
       break;
     case "u":
       var hexCode = this.input.substr(1, 4);
@@ -1147,7 +1171,7 @@ Lexer.prototype = {
     this.skip();
 
     while (this.peek() !== quote) {
-      while (this.peek() === "") { // End Of Line
+      if (this.peek() === "") { // End Of Line
 
         // If an EOL is not preceded by a backslash, show a warning
         // and proceed like it was a legit multi-line string where
@@ -1200,33 +1224,35 @@ Lexer.prototype = {
             quote: quote
           };
         }
+
+      } else { // Any character other than End Of Line
+
+        allowNewLine = false;
+        var char = this.peek();
+        var jump = 1; // A length of a jump, after we're done
+                      // parsing this character.
+
+        if (char < " ") {
+          // Warn about a control character in a string.
+          this.trigger("warning", {
+            code: "W113",
+            line: this.line,
+            character: this.char,
+            data: [ "<non-printable>" ]
+          });
+        }
+
+        // Special treatment for some escaped characters.
+        if (char === "\\") {
+          var parsed = this.scanEscapeSequence(checks);
+          char = parsed.char;
+          jump = parsed.jump;
+          allowNewLine = parsed.allowNewLine;
+        }
+
+        value += char;
+        this.skip(jump);
       }
-
-      allowNewLine = false;
-      var char = this.peek();
-      var jump = 1; // A length of a jump, after we're done
-                    // parsing this character.
-
-      if (char < " ") {
-        // Warn about a control character in a string.
-        this.trigger("warning", {
-          code: "W113",
-          line: this.line,
-          character: this.char,
-          data: [ "<non-printable>" ]
-        });
-      }
-
-      // Special treatment for some escaped characters.
-      if (char === "\\") {
-        var parsed = this.scanEscapeSequence(checks);
-        char = parsed.char;
-        jump = parsed.jump;
-        allowNewLine = parsed.allowNewLine;
-      }
-
-      value += char;
-      this.skip(jump);
     }
 
     this.skip();
@@ -1504,7 +1530,7 @@ Lexer.prototype = {
 
     // If we are ignoring linter errors, replace the input with empty string
     // if it doesn't already at least start or end a multi-line comment
-    if (state.ignoreLinterErrors === true) {
+    if (this.ignoringLinterErrors === true) {
       if (!startsWith("/*", "//") && !(this.inComment && endsWith("*/"))) {
         this.input = "";
       }
@@ -1564,7 +1590,7 @@ Lexer.prototype = {
       }
       var meta = token.meta;
 
-      if (meta && meta.isFutureReservedWord && state.option.inES5()) {
+      if (meta && meta.isFutureReservedWord && state.inES5()) {
         // ES3 FutureReservedWord in an ES5 environment.
         if (!meta.es5) {
           return false;
@@ -1573,7 +1599,7 @@ Lexer.prototype = {
         // Some ES5 FutureReservedWord identifiers are active only
         // within a strict mode environment.
         if (meta.strictOnly) {
-          if (!state.option.strict && !state.directive["use strict"]) {
+          if (!state.option.strict && !state.isStrict()) {
             return false;
           }
         }
@@ -1666,7 +1692,16 @@ Lexer.prototype = {
 
     for (;;) {
       if (!this.input.length) {
-        return create(this.nextLine() ? "(endline)" : "(end)", "");
+        if (this.nextLine()) {
+          return create("(endline)", "");
+        }
+
+        if (this.exhausted) {
+          return null;
+        }
+
+        this.exhausted = true;
+        return create("(end)", "");
       }
 
       token = this.next(checks);
@@ -1783,7 +1818,7 @@ Lexer.prototype = {
           line: this.line,
           character: this.char
         }, checks, function() {
-          return state.directive["use strict"] && token.base === 8 && token.isLegacy;
+          return state.isStrict() && token.base === 8 && token.isLegacy;
         });
 
         this.trigger("Number", {
